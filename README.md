@@ -30,7 +30,7 @@
 
 ## ERD
 
-![Image](https://github.com/ykchoi1203/tabling/assets/30820741/01e95bc4-b97f-4cf4-a92d-c2ebd2e53e00)
+![ERD](https://github.com/ykchoi1203/tabling/assets/30820741/01e95bc4-b97f-4cf4-a92d-c2ebd2e53e00)
 
 ## 시나리오
 - 매장의 점장은 예약 서비스 앱에 상점을 등록한다.(매장 명, 상점위치, 상점 설명)
@@ -43,3 +43,6 @@
 
 ## Postman
 ![Tabling Postman](https://github.com/ykchoi1203/tabling/assets/30820741/135ebf3c-cef1-4453-9cac-3b75d7ac4941)
+
+## Swagger
+![Swagger](https://github.com/ykchoi1203/tabling/assets/30820741/fbcce46c-f797-47e5-874c-c8993272ba86)
