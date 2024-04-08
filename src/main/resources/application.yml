@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: tabling
+
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://localhost:3307/tabling
+    username: tabling
+    password: tabling
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+      use-new-id-generator-mappings: false
+    show-sql: true
+    defer-datasource-initialization: true
+
+  jwt:
+    secret: c3ByaW5nLWJvb3QtcHJvamVjdC1vbmUtdHV0b3JpYWwtand0LXNlY3JldC1rZXkK
+
