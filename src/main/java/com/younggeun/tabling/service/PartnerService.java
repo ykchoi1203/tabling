@@ -1,5 +1,6 @@
 package com.younggeun.tabling.service;
 
+import com.younggeun.tabling.exception.impl.*;
 import com.younggeun.tabling.model.Auth;
 import com.younggeun.tabling.model.constants.ReservationStatus;
 import com.younggeun.tabling.persist.PartnerRepository;
@@ -19,6 +20,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
 import java.util.Objects;
@@ -42,7 +44,7 @@ public class PartnerService implements UserDetailsService {
     // Partner 회원가입
     public PartnerEntity register(Auth.SignUp user) {
         if(this.partnerRepository.existsByPartnerId(user.getUserId())) {
-            throw new RuntimeException("이미 사용중인 아이디 입니다.");
+            throw new AlreadyExistUserException();
         }
 
         user.setPassword(this.passwordEncoder.encode(user.getPassword()));
@@ -52,10 +54,10 @@ public class PartnerService implements UserDetailsService {
 
     // Partner 로그인
     public PartnerEntity authenticate(Auth.SignIn user) {
-        var member = this.partnerRepository.findByPartnerId(user.getUserId()).orElseThrow(() -> new RuntimeException("존재하지 않는 ID 입니다."));
+        var member = this.partnerRepository.findByPartnerId(user.getUserId()).orElseThrow(NoUserException::new);
 
         if(!this.passwordEncoder.matches(user.getPassword(), member.getPassword())) {
-            throw new RuntimeException("비밀번호가 일치하지 않습니다.");
+            throw new PasswordMismatchException();
         }
         return member;
     }
@@ -66,7 +68,7 @@ public class PartnerService implements UserDetailsService {
         PartnerEntity partner = partnerRepository.findByPartnerId(authentication.getName()).orElseThrow(() -> new RuntimeException("해당 유저가 없습니다."));
 
         if(this.storeRepository.existsByStoreName(storeDto.getStoreName())) {
-            throw new RuntimeException("이미 사용중인 상호명 입니다.");
+            throw new AlreadyExistStoreException();
         }
 
         return this.storeRepository.save(StoreEntity.builder()
@@ -86,7 +88,7 @@ public class PartnerService implements UserDetailsService {
         StoreEntity store = storeRepository.getById(storeDto.getStoreId());
 
         if(!Objects.equals(store.getPartner().getPartnerId(), partner.getPartnerId())) {
-            throw new RuntimeException("로그인한 유저와 매장 관리자 유저가 다릅니다.");
+            throw new MismatchPartnerException();
         }
 
         store.setStoreName(storeDto.getStoreName());
@@ -97,15 +99,15 @@ public class PartnerService implements UserDetailsService {
     }
 
     // 상점 삭제
-
+    @Transactional
     public boolean deleteStore(Authentication authentication, Long storeId) {
         PartnerEntity partner = partnerRepository.findByPartnerId(authentication.getName()).orElseThrow(() -> new RuntimeException("해당 유저가 없습니다."));
-        StoreEntity store = storeRepository.findById(storeId).orElseThrow(() -> new RuntimeException("해당 가게가 존재하지 않습니다."));
+        StoreEntity store = storeRepository.findById(storeId).orElseThrow(NoStoreException::new);
         if(store.getPartner().getPartnerId().equals(partner.getPartnerId())) {
             this.storeRepository.deleteById(storeId);
             return true;
         } else {
-            throw new RuntimeException("로그인된 유저와 매장 관리자 유저가 다릅니다.");
+            throw new MismatchPartnerException();
         }
     }
 
@@ -116,18 +118,18 @@ public class PartnerService implements UserDetailsService {
 
     // 예약 승인/거절 (승인 : RESERVATION, 거절 : CANCEL )
     public ReservationEntity updateReservation(Authentication authentication, ReservationDto reservationDto) {
-        PartnerEntity partner = partnerRepository.findByPartnerId(authentication.getName()).orElseThrow(() -> new RuntimeException("해당 유저가 없습니다."));
+        PartnerEntity partner = partnerRepository.findByPartnerId(authentication.getName()).orElseThrow(NoUserException::new);
 
-        ReservationEntity reservation = reservationRepository.findById(reservationDto.getReservationId()).orElseThrow(()-> new RuntimeException("존재하지 않는 예약정보입니다."));
+        ReservationEntity reservation = reservationRepository.findById(reservationDto.getReservationId()).orElseThrow(NoReservationException::new);
 
-        StoreEntity store = storeRepository.findById(reservation.getStore().getId()).orElseThrow(() -> new RuntimeException("해당 가게가 존재하지 않습니다."));
+        StoreEntity store = storeRepository.findById(reservation.getStore().getId()).orElseThrow(NoStoreException::new);
 
         if(!Objects.equals(partner.getPartnerId(), store.getPartner().getPartnerId())) {
-            throw new RuntimeException("해당 매장의 유저와 로그인된 유저가 다릅니다.");
+            throw new MismatchPartnerException();
         }
 
         if(!Objects.equals(reservation.getStore().getId(), store.getId())) {
-            throw new RuntimeException("해당 매장의 예약 내역이 아닙니다.");
+            throw new MismatchReservationException();
         }
 
         reservation.setStatus(reservationDto.getStatus());
@@ -138,23 +140,23 @@ public class PartnerService implements UserDetailsService {
     // 매장 방문 후 도착 확인
     public ReservationEntity arrivalReservation(Authentication authentication, ReservationDto reservationDto) {
         PartnerEntity partner = partnerRepository.findByPartnerId(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("해당 유저가 없습니다."));
+                .orElseThrow(NoUserException::new);
 
         ReservationEntity reservation = reservationRepository.findById(reservationDto.getReservationId())
-                .orElseThrow(() -> new RuntimeException("존재하지 않는 예약정보입니다."));
+                .orElseThrow(NoReservationException::new);
 
         StoreEntity store = reservation.getStore();
 
         if (!Objects.equals(partner.getPartnerId(), store.getPartner().getPartnerId())) {
-            throw new RuntimeException("해당 매장의 유저와 로그인된 유저가 다릅니다.");
+            throw new MismatchPartnerException();
         }
 
         if (reservation.getStatus() == ReservationStatus.ARRIVAL) {
-            throw new RuntimeException("이미 처리된 예약내역입니다.");
+            throw new AlreadyExistReservationException();
         }
 
         if (reservation.getStatus() != ReservationStatus.RESERVATION) {
-            throw new RuntimeException("예약이 대기중이거나 취소되었습니다.");
+            throw new WaitOrCancelReservationException();
         }
 
         LocalDate currentDate = LocalDate.now();
@@ -166,7 +168,7 @@ public class PartnerService implements UserDetailsService {
                 || currentTime.isAfter(reservation.getTime())
                 || currentTime.isBefore(reservation.getTime().minusMinutes(10))
                 || currentTime.isAfter(reservation.getTime().plusMinutes(10))) {
-            throw new RuntimeException("예약 도착 완료할 수 없는 시간입니다.");
+            throw new CannotReservationTimeException();
         }
 
         reservation.setStatus(ReservationStatus.ARRIVAL);

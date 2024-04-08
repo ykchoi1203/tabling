@@ -1,5 +1,6 @@
 package com.younggeun.tabling.service;
 
+import com.younggeun.tabling.exception.impl.*;
 import com.younggeun.tabling.model.constants.ReservationStatus;
 import com.younggeun.tabling.persist.*;
 import com.younggeun.tabling.persist.dto.ReviewDto;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 
@@ -24,21 +26,22 @@ public class ReviewService {
     private final PartnerRepository partnerRepository;
 
     // 리뷰 작성
+    @Transactional
     public ReviewEntity writeReview(Authentication authentication, ReviewDto reviewDto) {
         ReservationEntity reservation = reservationRepository.getById(reviewDto.getReservationId());
 
-        UserEntity user = userRepository.findByUserId(authentication.getName()).orElseThrow(() -> new RuntimeException("일치하는 아이디가 없습니다."));
+        UserEntity user = userRepository.findByUserId(authentication.getName()).orElseThrow(NoUserException::new);
 
         if(!Objects.equals(user.getId(), reservation.getUser().getId())) {
-            throw new RuntimeException("일치하지 않는 유저입니다.");
+            throw new MismatchUserException();
         }
 
         if(reservation.getStatus() != ReservationStatus.ARRIVAL) {
-            throw new RuntimeException("완료되지 않은 예약입니다.");
+            throw new NotAlreadyReservationException();
         }
 
         if(reviewRepository.countByReservationId(reservation.getId())>0) {
-            throw new RuntimeException("이미 작성이 완료된 리뷰입니다.");
+            throw new AlreadyExistReviewException();
         }
 
         ReviewEntity review = ReviewEntity.builder()
@@ -67,16 +70,17 @@ public class ReviewService {
     }
 
     // 리뷰 삭제 (작성자)
+    @Transactional
     public boolean deleteReviewByUser(Authentication authentication, ReviewDto reviewDto) {
         ReservationEntity reservation = reservationRepository.getById(reviewDto.getReviewId());
 
-        UserEntity user = userRepository.findByUserId(authentication.getName()).orElseThrow(() -> new RuntimeException("일치하는 아이디가 없습니다."));
+        UserEntity user = userRepository.findByUserId(authentication.getName()).orElseThrow(NoUserException::new);
 
         if(!Objects.equals(user.getId(), reservation.getUser().getId())) {
-            throw new RuntimeException("일치하지 않는 유저입니다.");
+            throw new MismatchUserException();
         }
 
-        ReviewEntity review = reviewRepository.findById(reviewDto.getReviewId()).orElseThrow(()-> new RuntimeException("리뷰를 찾을 수 없습니다."));
+        ReviewEntity review = reviewRepository.findById(reviewDto.getReviewId()).orElseThrow(NoReviewException::new);
         StoreEntity store = review.getStore();
 
         store.setTotalReview(store.getTotalReview()-1);
@@ -88,23 +92,23 @@ public class ReviewService {
     }
 
     // 리뷰 삭제 (Partner)
-
+    @Transactional
     public boolean deleteReviewByPartner(Authentication authentication, ReviewDto reviewDto) {
         ReservationEntity reservation = reservationRepository.getById(reviewDto.getReviewId());
 
-        PartnerEntity partner = partnerRepository.findByPartnerId(authentication.getName()).orElseThrow(() -> new RuntimeException("일치하는 아이디가 없습니다."));
+        PartnerEntity partner = partnerRepository.findByPartnerId(authentication.getName()).orElseThrow(NoUserException::new);
 
-        StoreEntity store = storeRepository.findById(reservation.getStore().getId()).orElseThrow(() -> new RuntimeException("존재하지 않는 매장입니다."));
+        StoreEntity store = storeRepository.findById(reservation.getStore().getId()).orElseThrow(NoStoreException::new);
 
         if(!Objects.equals(partner.getId(), reservation.getUser().getId())) {
-            throw new RuntimeException("일치하지 않는 유저입니다.");
+            throw new MismatchPartnerException();
         }
 
         if(!Objects.equals(store.getPartner().getPartnerId(), partner.getPartnerId())) {
-            throw new RuntimeException("해당 매장의 관리자가 아닙니다.");
+            throw new MismatchStorePartnerException();
         }
 
-        ReviewEntity review = reviewRepository.findById(reviewDto.getReviewId()).orElseThrow(()-> new RuntimeException("리뷰를 찾을 수 없습니다."));
+        ReviewEntity review = reviewRepository.findById(reviewDto.getReviewId()).orElseThrow(NoReviewException::new);
         store = review.getStore();
 
         store.setTotalReview(store.getTotalReview()-1);
@@ -118,15 +122,16 @@ public class ReviewService {
 
 
     // 리뷰 수정
+    @Transactional
     public ReviewEntity updateReview(Authentication authentication, ReviewDto reviewDto) {
-        ReviewEntity review = reviewRepository.findById(reviewDto.getReviewId()).orElseThrow(() -> new RuntimeException("일치하는 리뷰가 없습니다."));
+        ReviewEntity review = reviewRepository.findById(reviewDto.getReviewId()).orElseThrow(NoReviewException::new);
 
-        UserEntity user = userRepository.findByUserId(authentication.getName()).orElseThrow(() -> new RuntimeException("일치하는 아이디가 없습니다."));
+        UserEntity user = userRepository.findByUserId(authentication.getName()).orElseThrow(NoUserException::new);
 
         StoreEntity store = review.getStore();
 
         if(!Objects.equals(user.getId(), review.getUser().getId())) {
-            throw new RuntimeException("일치하지 않는 유저입니다.");
+            throw new MismatchUserException();
         }
 
         store.setTotalStarRating(store.getTotalStarRating() - review.getStarRating() + reviewDto.getStarRating());
@@ -152,7 +157,7 @@ public class ReviewService {
 
     // 내가 쓴 리뷰 리스트
     public Page<ReviewEntity> selectReview(Authentication authentication, Pageable pageable) {
-        UserEntity user = userRepository.findByUserId(authentication.getName()).orElseThrow(() -> new RuntimeException("일치하는 아이디가 없습니다."));
+        UserEntity user = userRepository.findByUserId(authentication.getName()).orElseThrow(NoUserException::new);
 
         return reviewRepository.findByUserId(user.getId(), pageable);
     }

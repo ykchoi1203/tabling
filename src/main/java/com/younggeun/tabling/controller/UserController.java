@@ -2,6 +2,7 @@ package com.younggeun.tabling.controller;
 
 import com.younggeun.tabling.model.Auth;
 import com.younggeun.tabling.persist.dto.ReservationDto;
+import com.younggeun.tabling.persist.dto.StoreDto;
 import com.younggeun.tabling.persist.entity.ReservationEntity;
 import com.younggeun.tabling.persist.entity.StoreEntity;
 import com.younggeun.tabling.security.TokenProvider;
@@ -45,7 +46,7 @@ public class UserController {
                                             @RequestParam(value = "lon", required = false, defaultValue = "127.26931") double lon,
                                             @RequestParam(value = "orderBy", required = false, defaultValue = "거리순") String orderBy,
                                             final Pageable pageable) {
-        Page<StoreEntity> stores = this.userService.getAllStores(pageable, orderBy, lat, lon);
+        Page<StoreDto> stores = this.userService.getAllStores(pageable, orderBy, lat, lon);
         return ResponseEntity.ok(stores);
     }
 

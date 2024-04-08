@@ -1,8 +1,11 @@
 package com.younggeun.tabling.persist.dto;
 
+import com.younggeun.tabling.persist.entity.PartnerEntity;
+import com.younggeun.tabling.persist.entity.ReservationEntity;
 import lombok.*;
 
-import javax.persistence.Column;
+import java.util.ArrayList;
+import java.util.List;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -10,12 +13,13 @@ import javax.persistence.Column;
 @Getter
 @Setter
 public class StoreDto {
+    private String distanceDifference;
     private Long storeId;
     private String storeName;
-
-    @Column(nullable = false)
-    private Double latitude; // 위도
-    @Column(nullable = false)
-    private Double longitude; // 경도
-
+    private Double latitude;
+    private Double longitude;
+    private Long totalStarRating;
+    private Long totalReview;
+    private PartnerEntity partner;
+    private List<ReservationEntity> reservations = new ArrayList<>();
 }

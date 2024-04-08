@@ -1,19 +1,19 @@
 package com.younggeun.tabling.persist;
 
+import com.younggeun.tabling.persist.dto.StoreDto;
 import com.younggeun.tabling.persist.entity.StoreEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
 public interface StoreRepository extends JpaRepository<StoreEntity, Long> {
     Optional<StoreEntity> findByStoreName(String storeName);
     Optional<StoreEntity> findById(Long id);
-    Page<StoreEntity> findAllByOrderByStoreName(Pageable pageable);
+    Page<StoreDto> findAllByOrderByStoreName(Pageable pageable);
 
     boolean existsByStoreName(String storeName);
 
@@ -22,14 +22,13 @@ public interface StoreRepository extends JpaRepository<StoreEntity, Long> {
             " FROM store " +
             " ORDER BY distance_difference ",
             nativeQuery = true)
-    Page<StoreEntity> findAllByOrderByDistance(Pageable pageable, @Param("lat") double lat, @Param("lon") double lon);
+    Page<StoreDto> findAllByOrderByDistance(Pageable pageable, @Param("lat") double lat, @Param("lon") double lon);
 
     @Query(value = "SELECT ROUND(store.total_star_rating / store.total_review) AS star_rating, store.* " +
             " FROM store " +
             " ORDER BY star_rating ",
             nativeQuery = true)
-    Page<StoreEntity> findAllByOrderByStarRating(Pageable pageable);
+    Page<StoreDto> findAllByOrderByStarRating(Pageable pageable);
 
-    @Transactional
     void deleteById(Long storeId);
 }
