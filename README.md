@@ -28,7 +28,7 @@
 - 데이터베이스
     - MariaDB
 
-## 🛠 ERD
+## ERD
 
 ![Image](https://github.com/ykchoi1203/tabling/assets/30820741/01e95bc4-b97f-4cf4-a92d-c2ebd2e53e00)
 
@@ -40,3 +40,6 @@
 - 서비스를 통해서 예약한 이후에, 예약 10분전에 도착하여 키오스크를 통해서 방문 확인을 진행한다.
 - 예약 및 사용 이후에 리뷰를 작성할 수 있다.
 - 리뷰의 경우, 수정은 리뷰 작성자만, 삭제 권한은 리뷰를 작성한 사람과 매장의 관리자(점장등)만 삭제할 수 있습니다.
+
+## Postman
+![Tabling Postman](https://github.com/ykchoi1203/tabling/assets/30820741/135ebf3c-cef1-4453-9cac-3b75d7ac4941)
